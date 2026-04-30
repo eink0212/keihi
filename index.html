@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>経費メモ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+:root {
+  --bg:#F0F5F8; --white:#FFFFFF;
+  --text:#2A3A48; --text-mid:#5A7888; --text-soft:#9AB8C8;
+  --border:#C8DCE8;
+  /* 着物グラデ スレートブルー系（支出） */
+  --sl-light:#E0EDF5; --sl-mid:#B0CCDC;
+  --sl:#7A9BB0;        --sl-deep:#445870;
+  --blue:var(--sl);    --blue-deep:var(--sl-deep);
+  --sky:var(--sl-light); --sky-mid:var(--sl-mid);
+  /* くすみゴールド（差し色・収入） */
+  --gd-light:#F5F0E5; --gd-mid:#DDD0B0;
+  --gd:#B8A070;        --gd-deep:#7A6840;
+  --green:var(--gd);   --green-deep:var(--gd-deep);
+  --mint:var(--gd-light);
+  /* その他 */
+  --yellow:var(--gd-light); --lemon:var(--sl-light);
+  --lavender:var(--sl-light); --purple:var(--sl);
+  --rose:var(--gd-light); --red:#906878;
+  --peach:var(--gd-light); --orange:var(--gd);
+  --border-strong:var(--sl-mid);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px;}
+
+.header{background:linear-gradient(135deg,#C8DCE8 0%,#F0F5F8 100%);padding:18px 20px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+.header-title{font-size:21px;font-weight:800;}
+.header-sub{font-size:14px;color:var(--text-soft);font-weight:600;margin-top:2px;}
+.month-chip{background:#E0EDF5;color:#445870;font-size:15px;font-weight:800;padding:9px 18px;border-radius:24px;border:none;font-family:inherit;cursor:pointer;}
+.month-chip:active{background:#B0CCDC;}
+
+.setup-bar{margin:12px 16px 0;padding:12px 16px;background:#E0EDF5;border:1.5px solid #B0CCDC;border-radius:10px;font-size:14px;color:#445870;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.setup-bar.ok{background:#E0EDF5;border-color:#7A9BB0;color:#445870;}
+.setup-link{background:none;border:none;color:#7A9BB0;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;text-decoration:underline;padding:0;}
+
+.type-toggle{display:flex;margin:14px 16px 0;background:var(--border);border-radius:12px;padding:4px;gap:4px;}
+.type-btn{flex:1;padding:13px 8px;text-align:center;font-size:16px;font-weight:800;border-radius:9px;border:none;background:transparent;font-family:inherit;cursor:pointer;color:var(--text-soft);transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.type-btn.exp.active{background:var(--white);color:#445870;box-shadow:0 2px 8px rgba(68,88,112,0.18);}
+.type-btn.rev.active{background:var(--white);color:#7A6840;box-shadow:0 2px 8px rgba(122,104,64,0.20);}
+
+.view{display:none;padding:14px 16px;}
+.view.active{display:block;}
+
+.amount-hero{border-radius:16px;padding:22px 20px 18px;margin-bottom:12px;position:relative;overflow:hidden;}
+.amount-hero.eh{background:linear-gradient(135deg,#B8D4E0 0%,#445870 100%);}
+.amount-hero.rh{background:linear-gradient(135deg,#C8B080 0%,#7A6840 100%);}
+.amount-hero::after{content:'';position:absolute;right:-24px;top:-24px;width:110px;height:110px;background:rgba(255,255,255,0.07);border-radius:50%;}
+.amount-label{font-size:10px;font-weight:800;opacity:.65;letter-spacing:1.2px;text-transform:uppercase;color:white;margin-bottom:6px;}
+.amount-row{display:flex;align-items:baseline;gap:4px;}
+.amount-yen{font-size:26px;font-weight:800;color:rgba(255,255,255,0.65);}
+.amount-field{background:transparent;border:none;outline:none;font-family:'Nunito',inherit;font-size:46px;font-weight:800;color:white;width:100%;letter-spacing:-1.5px;}
+.amount-field::placeholder{color:rgba(255,255,255,0.3);}
+
+.card{background:var(--white);border-radius:16px;box-shadow:0 2px 10px rgba(68,88,112,0.10);margin-bottom:12px;overflow:hidden;}
+.card-label{font-size:12px;font-weight:800;color:var(--text-soft);letter-spacing:1px;text-transform:uppercase;padding:14px 16px 10px;}
+
+.date-row{padding:0 16px 14px;display:flex;align-items:center;gap:10px;}
+.date-icon{width:42px;height:42px;background:#E0EDF5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.date-input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:inherit;font-size:17px;font-weight:700;color:var(--text);background:var(--bg);outline:none;}
+.date-input:focus{border-color:#7A9BB0;background:#E0EDF5;}
+
+/* 科目グリッド */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px 14px;}
+.cat-btn{padding:14px 6px;border:2px solid var(--border);border-radius:12px;background:var(--bg);font-family:inherit;font-size:13px;font-weight:700;color:var(--text-mid);cursor:pointer;text-align:center;line-height:1.4;transition:all 0.12s;}
+.cat-btn:active{transform:scale(0.95);}
+.cat-btn[data-c="blue"].sel{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
+.cat-btn[data-c="orange"].sel{border-color:var(--orange);background:var(--peach);color:#B04200;}
+.cat-btn[data-c="purple"].sel{border-color:var(--purple);background:var(--lavender);color:#5A3ED4;}
+.cat-btn[data-c="green"].sel{border-color:var(--green);background:var(--mint);color:var(--green-deep);}
+.cat-btn[data-c="yellow"].sel{border-color:var(--yellow);background:var(--lemon);color:#7A5A00;}
+.cat-btn[data-c="red"].sel{border-color:var(--red);background:var(--rose);color:#B0204A;}
+
+/* 取引先 */
+.vendor-wrap{padding:0 16px 14px;}
+.vendor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+.vendor-btn{padding:11px 4px;border:2px solid var(--border);border-radius:10px;background:var(--bg);font-family:inherit;font-size:13px;font-weight:700;color:var(--text-mid);cursor:pointer;text-align:center;line-height:1.3;transition:all 0.12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vendor-btn:active{transform:scale(0.95);}
+/* スプシのカラーに対応 */
+.vendor-btn[data-v="四方"].sel{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
+.vendor-btn[data-v="ビック酒販"].sel{border-color:#2196F3;background:#E3F2FD;color:#0D47A1;}
+.vendor-btn[data-v="スギ薬局"].sel{border-color:#9C27B0;background:#F3E5F5;color:#4A148C;}
+.vendor-btn[data-v="マルエツ"].sel{border-color:#FF9800;background:#FFF3E0;color:#E65100;}
+.vendor-btn[data-v="浜田青果"].sel{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
+.vendor-btn[data-v="セブンイレブン"].sel{border-color:#F44336;background:#FFEBEE;color:#B71C1C;}
+.vendor-btn[data-v="ファミリーマート"].sel{border-color:#2196F3;background:#E3F2FD;color:#0D47A1;}
+.vendor-btn[data-v="Amazon"].sel{border-color:#FF9800;background:#FFF3E0;color:#E65100;}
+.vendor-btn[data-v="GoPay"].sel{border-color:#00BCD4;background:#E0F7FA;color:#006064;}
+.vendor-btn[data-v="エスライド"].sel{border-color:#E91E63;background:#FCE4EC;color:#880E4F;}
+.vendor-btn[data-v="個人タクシー"].sel{border-color:#FF9800;background:#FFF3E0;color:#E65100;}
+/* 未選択でも色ヒント */
+.vendor-btn[data-v="四方"]{border-left:3px solid #4CAF50;}
+.vendor-btn[data-v="ビック酒販"]{border-left:3px solid #2196F3;}
+.vendor-btn[data-v="スギ薬局"]{border-left:3px solid #9C27B0;}
+.vendor-btn[data-v="マルエツ"]{border-left:3px solid #FF9800;}
+.vendor-btn[data-v="浜田青果"]{border-left:3px solid #4CAF50;}
+.vendor-btn[data-v="セブンイレブン"]{border-left:3px solid #F44336;}
+.vendor-btn[data-v="ファミリーマート"]{border-left:3px solid #2196F3;}
+.vendor-btn[data-v="Amazon"]{border-left:3px solid #FF9800;}
+.vendor-btn[data-v="GoPay"]{border-left:3px solid #00BCD4;}
+.vendor-btn[data-v="エスライド"]{border-left:3px solid #E91E63;}
+.vendor-btn[data-v="個人タクシー"]{border-left:3px solid #FF9800;}
+.vendor-other-row{display:flex;align-items:center;gap:8px;}
+.vendor-other-icon{font-size:15px;flex-shrink:0;}
+.vendor-input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:inherit;font-size:16px;font-weight:600;color:var(--text);background:var(--bg);outline:none;}
+.vendor-input:focus{border-color:#7A9BB0;background:#E0EDF5;}
+.vendor-input::placeholder{color:var(--text-soft);}
+
+/* 支払方法 */
+.pay-row{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap;}
+.pay-btn{padding:11px 18px;border:2px solid var(--border);border-radius:24px;background:var(--bg);font-family:inherit;font-size:15px;font-weight:700;color:var(--text-mid);cursor:pointer;transition:all 0.12s;}
+.pay-btn:active{transform:scale(0.95);}
+.pay-btn.ep.sel{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
+.pay-btn.rp.sel{border-color:#B8A070;background:#F5F0E5;color:#7A6840;}
+
+/* 税区分 */
+.tax-row{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap;}
+.tax-btn{padding:10px 16px;border:2px solid var(--border);border-radius:20px;background:var(--bg);font-family:inherit;font-size:14px;font-weight:700;color:var(--text-mid);cursor:pointer;transition:all 0.12s;}
+.tax-btn:active{transform:scale(0.95);}
+.tax-btn.sel{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
+
+/* メモ・備考 */
+.memo-wrap{padding:0 16px 14px;}
+.memo-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:inherit;font-size:16px;font-weight:600;color:var(--text);background:var(--bg);outline:none;resize:none;line-height:1.5;}
+.memo-input::placeholder{color:var(--text-soft);}
+.memo-input.ef:focus{border-color:#7A9BB0;background:#E0EDF5;}
+.memo-input.rf:focus{border-color:#B8A070;background:#F5F0E5;}
+
+.btn-record{width:100%;padding:20px;color:white;border:none;border-radius:16px;font-family:inherit;font-size:18px;font-weight:800;cursor:pointer;letter-spacing:0.3px;transition:all 0.15s;}
+.btn-record.eb{background:linear-gradient(135deg,#8AB4C8,#445870);box-shadow:0 4px 18px rgba(68,88,112,0.30);}
+.btn-record.eb:active{background:#445870;}
+.btn-record.rb{background:linear-gradient(135deg,#C8B080,#7A6840);box-shadow:0 4px 18px rgba(122,104,64,0.28);}
+.btn-record.rb:active{background:#7A6840;}
+.btn-record:active{transform:scale(0.98);}
+.btn-record:disabled{background:#C0C8D8;box-shadow:none;cursor:not-allowed;}
+
+/* 履歴 */
+.month-total{background:var(--white);border-radius:16px;box-shadow:0 2px 10px rgba(68,88,112,0.10);padding:16px;margin-bottom:12px;}
+.mt-row{display:flex;gap:12px;}
+.mt-block{flex:1;}
+.mt-lbl{font-size:12px;font-weight:800;color:var(--text-soft);letter-spacing:0.8px;text-transform:uppercase;}
+.mt-amt{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:3px;}
+.mt-amt.ec{color:#445870;}
+.mt-amt.rc{color:#7A6840;}
+.mt-divider{width:1px;background:var(--border);}
+.breakdown{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap;}
+.b-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:#E0EDF5;color:#445870;}
+
+.filter-tabs{display:flex;gap:8px;margin-bottom:10px;}
+.ftab{padding:9px 18px;border:2px solid var(--border);border-radius:20px;background:var(--white);font-family:inherit;font-size:14px;font-weight:800;color:var(--text-soft);cursor:pointer;}
+.ftab.fa{border-color:var(--text-mid);background:var(--text-mid);color:white;}
+.ftab.fe{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
+.ftab.fr{border-color:#B8A070;background:#F5F0E5;color:#7A6840;}
+
+.history-card{background:var(--white);border-radius:16px;box-shadow:0 2px 10px rgba(68,88,112,0.10);overflow:hidden;}
+.h-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);}
+.h-item:last-child{border-bottom:none;}
+.h-dot{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.h-dot.ed{background:#E0EDF5;}
+.h-dot.rd{background:#F5F0E5;}
+.h-body{flex:1;min-width:0;}
+.h-tag{font-size:12px;font-weight:800;letter-spacing:0.2px;}
+.h-tag.et{color:#445870;}
+.h-tag.rt{color:#7A6840;}
+.h-memo{font-size:16px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.h-sub{font-size:13px;color:var(--text-soft);font-weight:600;margin-top:1px;}
+.h-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+.h-amt{font-size:18px;font-weight:800;white-space:nowrap;}
+.h-amt.ea{color:var(--text);}
+.h-amt.ra{color:#7A6840;}
+.h-del{background:none;border:none;color:var(--text-soft);font-size:15px;cursor:pointer;padding:4px 6px;border-radius:6px;}
+.h-del:active{background:var(--rose);color:var(--red);}
+.empty-state{text-align:center;padding:52px 20px;color:var(--text-soft);font-size:14px;font-weight:600;line-height:1.7;}
+.empty-icon{font-size:40px;display:block;margin-bottom:12px;}
+
+/* 設定 */
+.shl{font-size:12px;font-weight:800;color:var(--text-soft);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.scard{background:var(--white);border-radius:16px;box-shadow:0 2px 10px rgba(68,88,112,0.10);padding:16px;margin-bottom:16px;}
+.slbl{font-size:14px;font-weight:700;color:var(--text-mid);margin-bottom:6px;}
+.sinput{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:inherit;font-size:15px;font-weight:600;color:var(--text);background:var(--bg);outline:none;margin-bottom:10px;}
+.sinput:focus{border-color:#7A9BB0;background:#E0EDF5;}
+.shint{font-size:13px;font-weight:600;color:var(--text-soft);line-height:1.6;margin-bottom:12px;}
+.btn-save{width:100%;padding:15px;background:linear-gradient(135deg,#8AB4C8,#445870);color:white;border:none;border-radius:12px;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(68,88,112,0.28);}
+.btn-save:active{background:var(--blue-deep);}
+.steps{background:var(--bg);border-radius:10px;padding:14px;margin-bottom:12px;}
+.step{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--text);line-height:1.5;}
+.step:last-child{margin-bottom:0;}
+.step-n{min-width:22px;height:22px;border-radius:50%;background:var(--blue);color:white;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px;flex-shrink:0;}
+.code-box{background:#1A1D2E;border-radius:10px;padding:12px;margin-bottom:10px;overflow-x:auto;}
+.code-txt{font-family:'Courier New',monospace;font-size:10px;color:#7EC8A4;white-space:pre;line-height:1.6;display:block;}
+.btn-copy{padding:10px 18px;background:#E0EDF5;color:#445870;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;}
+.btn-copy:active{background:#7A9BB0;color:white;}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#EBF2F7 0%,#F0F5F8 100%);border-top:1px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom,0px);}
+.nav-btn{flex:1;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;font-family:inherit;cursor:pointer;color:var(--text-soft);font-size:12px;font-weight:700;}
+.nav-btn.active{color:#7A9BB0;}
+.nav-icon{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.nav-btn.active .nav-icon{background:#E0EDF5;}
+
+.m-overlay{display:none;position:fixed;inset:0;background:rgba(26,29,46,0.45);z-index:200;align-items:flex-end;justify-content:center;}
+.m-overlay.open{display:flex;}
+.m-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:16px 16px 40px;}
+.m-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px;}
+.m-title{font-size:16px;font-weight:800;text-align:center;color:var(--text-mid);margin-bottom:14px;}
+.m-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.m-btn{padding:16px 6px;text-align:center;font-size:16px;font-weight:700;border:2px solid var(--border);border-radius:10px;cursor:pointer;background:var(--bg);color:var(--text-mid);font-family:inherit;}
+.m-btn.active{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
+.m-btn:active{transform:scale(0.95);}
+
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:12px 22px;border-radius:28px;font-size:13px;font-weight:700;opacity:0;transition:opacity 0.25s,transform 0.25s;z-index:300;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--red);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">💸 経費メモ</div>
+    <div class="header-sub">個人事業主 経費・売上管理</div>
+  </div>
+  <button class="month-chip" id="monthChip" onclick="openMonth()">---</button>
+</div>
+
+<div class="setup-bar" id="setupBar">
+  ⚠️ Webhook URLを設定するとスプシに自動記録されます &nbsp;<button class="setup-link" onclick="showView('settings')">設定する →</button>
+</div>
+
+<div class="type-toggle">
+  <button class="type-btn exp active" id="toggleExp" onclick="switchType('expense')">📤 支出</button>
+  <button class="type-btn rev" id="toggleRev" onclick="switchType('revenue')">📥 収入</button>
+</div>
+
+<!-- 入力ビュー -->
+<div class="view active" id="view-input">
+
+  <div class="amount-hero eh" id="amountHero">
+    <div class="amount-label" id="amountLabel">EXPENSE / 支出</div>
+    <div class="amount-row">
+      <span class="amount-yen">¥</span>
+      <input class="amount-field" id="amountInput" type="number" placeholder="0" inputmode="numeric">
+    </div>
+  </div>
+
+  <!-- 発生日 -->
+  <div class="card">
+    <div class="card-label">発生日</div>
+    <div class="date-row">
+      <div class="date-icon">📅</div>
+      <input class="date-input" id="dateInput" type="date">
+    </div>
+  </div>
+
+  <!-- 勘定科目（支出のみ） -->
+  <div class="card" id="catCard">
+    <div class="card-label">勘定科目</div>
+    <div class="cat-grid">
+      <button class="cat-btn" data-c="blue"   data-cat="旅費交通費" onclick="selCat(this)">🚃<br>旅費交通費</button>
+      <button class="cat-btn" data-c="orange" data-cat="交際費"    onclick="selCat(this)">🥂<br>交際費</button>
+      <button class="cat-btn" data-c="purple" data-cat="支払手数料" onclick="selCat(this)">💳<br>支払手数料</button>
+      <button class="cat-btn" data-c="green"  data-cat="消耗品"    onclick="selCat(this)">📦<br>消耗品</button>
+      <button class="cat-btn" data-c="yellow" data-cat="会議費"    onclick="selCat(this)">☕<br>会議費</button>
+      <button class="cat-btn" data-c="red"    data-cat="新聞図書費" onclick="selCat(this)">📚<br>新聞図書費</button>
+    </div>
+  </div>
+
+  <!-- 支払方法 -->
+  <div class="card">
+    <div class="card-label" id="payLabel">支払</div>
+    <div class="pay-row" id="payRow"></div>
+  </div>
+
+  <!-- 取引先 -->
+  <div class="card">
+    <div class="card-label">取引先</div>
+    <div class="vendor-wrap">
+      <div class="vendor-grid" id="vendorGrid">
+        <button class="vendor-btn" data-v="四方" onclick="selVendor(this)">四方</button>
+        <button class="vendor-btn" data-v="Amazon" onclick="selVendor(this)">Amazon</button>
+        <button class="vendor-btn" data-v="ルカヴォ" onclick="selVendor(this)">ルカヴォ</button>
+        <button class="vendor-btn" data-v="築地" onclick="selVendor(this)">築地</button>
+        <button class="vendor-btn" data-v="GoPay" onclick="selVendor(this)">GoPay</button>
+        <button class="vendor-btn" data-v="ビックカメラ" onclick="selVendor(this)">ビックカメラ</button>
+        <button class="vendor-btn" data-v="個人タクシー" onclick="selVendor(this)">個人タクシー</button>
+        <button class="vendor-btn" data-v="マルエツ" onclick="selVendor(this)">マルエツ</button>
+        <button class="vendor-btn" data-v="その他" onclick="selVendor(this)">その他</button>
+        <button class="vendor-btn" data-v="S.RIDE" onclick="selVendor(this)">S.RIDE</button>
+        <button class="vendor-btn" data-v="一般個人" onclick="selVendor(this)">一般個人</button>
+        <button class="vendor-btn" data-v="3rdCREATION" onclick="selVendor(this)">3rdCREATION</button>
+        <button class="vendor-btn" data-v="浜田青果" onclick="selVendor(this)">浜田青果</button>
+        <button class="vendor-btn" data-v="スギ薬局" onclick="selVendor(this)">スギ薬局</button>
+        <button class="vendor-btn" data-v="セブンイレブン" onclick="selVendor(this)">セブンイレブン</button>
+        <button class="vendor-btn" data-v="エスライド" onclick="selVendor(this)">エスライド</button>
+      </div>
+      <div class="vendor-other-row">
+        <span class="vendor-other-icon">✏️</span>
+        <input class="vendor-input" id="vendorInput" type="text" placeholder="その他・直接入力">
+      </div>
+    </div>
+  </div>
+
+  <!-- 税区分 -->
+  <div class="card">
+    <div class="card-label">税区分</div>
+    <div class="tax-row" id="taxRow">
+      <button class="tax-btn sel" data-tax="課対仕入10%" onclick="selTax(this)">課対仕入10%</button>
+      <button class="tax-btn" data-tax="課対仕入8%" onclick="selTax(this)">課対仕入8%</button>
+      <button class="tax-btn" data-tax="課税売上10%" onclick="selTax(this)">課税売上10%</button>
+      <button class="tax-btn" data-tax="不課税" onclick="selTax(this)">不課税</button>
+    </div>
+  </div>
+
+  <!-- 備考 -->
+  <div class="card">
+    <div class="card-label">備考</div>
+    <div class="memo-wrap">
+      <textarea class="memo-input ef" id="memoInput" rows="2" placeholder="備考・メモ（任意）"></textarea>
+    </div>
+  </div>
+
+  <button class="btn-record eb" id="recordBtn" onclick="submitEntry()">📝 記録する</button>
+</div>
+
+<!-- 履歴ビュー -->
+<div class="view" id="view-history">
+  <div class="month-total">
+    <div class="mt-row">
+      <div class="mt-block">
+        <div class="mt-lbl">📤 支出合計</div>
+        <div class="mt-amt ec" id="totalExp">¥0</div>
+      </div>
+      <div class="mt-divider"></div>
+      <div class="mt-block" style="padding-left:12px;">
+        <div class="mt-lbl">📥 収入合計</div>
+        <div class="mt-amt rc" id="totalRev">¥0</div>
+      </div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+  </div>
+  <div class="filter-tabs">
+    <button class="ftab fa" id="fAll" onclick="setFilter('all')">すべて</button>
+    <button class="ftab" id="fExp" onclick="setFilter('expense')">📤 支出</button>
+    <button class="ftab" id="fRev" onclick="setFilter('revenue')">📥 収入</button>
+  </div>
+  <div class="history-card">
+    <div class="empty-state" id="emptyMsg"><span class="empty-icon">📋</span>まだ記録がありません<br>入力タブから追加してください</div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- 設定ビュー -->
+<div class="view" id="view-settings">
+  <div class="shl">接続設定</div>
+  <div class="scard">
+    <div class="slbl">GAS Webhook URL</div>
+    <input class="sinput" id="gasUrlInput" type="text" placeholder="https://script.google.com/macros/s/...">
+    <div class="shint">スプレッドシートに設定したGASのデプロイURLを貼り付けてください</div>
+    <button class="btn-save" onclick="saveSettings()">💾 保存する</button>
+  </div>
+  <div class="shl" style="margin-top:8px;">GAS セットアップ手順</div>
+  <div class="scard">
+    <div class="steps">
+      <div class="step"><span class="step-n">1</span>スプレッドシートを開く</div>
+      <div class="step"><span class="step-n">2</span>「拡張機能」→「Apps Script」を開く</div>
+      <div class="step"><span class="step-n">3</span>下のコードを貼り付けて保存（Ctrl+S）</div>
+      <div class="step"><span class="step-n">4</span>「デプロイ」→「新しいデプロイ」を選ぶ</div>
+      <div class="step"><span class="step-n">5</span>種類：ウェブアプリ ／ アクセス：<strong>全員</strong></div>
+      <div class="step"><span class="step-n">6</span>発行されたURLをコピーして上の欄に貼り付け保存</div>
+    </div>
+    <div class="code-box"><code class="code-txt" id="codeBlock"></code></div>
+    <button class="btn-copy" onclick="copyCode()">📋 コードをコピー</button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-input" onclick="showView('input')"><div class="nav-icon">✏️</div>入力</button>
+  <button class="nav-btn" id="nav-history" onclick="showView('history')"><div class="nav-icon">📋</div>履歴</button>
+  <button class="nav-btn" id="nav-settings" onclick="showView('settings')"><div class="nav-icon">⚙️</div>設定</button>
+</div>
+
+<div class="m-overlay" id="mOverlay" onclick="maybeClose(event)">
+  <div class="m-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">月を選択</div>
+    <div class="m-grid" id="mGrid"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SS_ID = '1bQkhW7SsSZvGSEjJMWrDnJpunPX7RzmUAkiwG854-fo';
+
+// スプシの列構成（スクショより）：
+// A:区分  B:発生日  C:勘定科目  D:支払  E:取引先  F:税区分  G:金額  H:備考
+const GAS = `function doPost(e) {
+  try {
+    var d = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.openById('${SS_ID}');
+    var sh = ss.getSheetByName(d.month);
+    if (!sh) {
+      sh = ss.insertSheet(d.month);
+      sh.appendRow(['区分','発生日','勘定科目','支払','取引先','税区分','金額','備考']);
+    }
+    // A:区分, B:発生日, C:勘定科目, D:支払, E:取引先, F:税区分, G:金額, H:備考
+    sh.appendRow([
+      d.kubun,
+      d.date,
+      d.category,
+      d.payment,
+      d.vendor,
+      d.taxKubun,
+      Number(d.amount),
+      d.memo
+    ]);
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'ok'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'error',msg:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+document.getElementById('codeBlock').textContent = GAS;
+
+const EMOJI = {'旅費交通費':'🚃','交際費':'🥂','支払手数料':'💳','消耗品':'📦','会議費':'☕','新聞図書費':'📚'};
+const EXP_PAYS = [['💳','クレカ'],['💴','現金'],['🏪','四方'],['📦','その他']];
+const REV_PAYS = [['🏦','振込'],['💴','現金'],['💳','クレカ']];
+
+let currentType = 'expense';
+let catVal = '', payVal = '', vendorVal = '', taxVal = '課対仕入10%';
+let filterMode = 'all';
+let month = '', gasUrl = '', entries = [];
+
+function init() {
+  const now = new Date();
+  month = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('monthChip').textContent = month;
+  document.getElementById('dateInput').value = now.toISOString().split('T')[0];
+  const s = JSON.parse(localStorage.getItem('keihi_v5') || '{}');
+  gasUrl = s.gasUrl || '';
+  entries = s.entries || [];
+  document.getElementById('gasUrlInput').value = gasUrl;
+  updateBanner();
+  buildMonthGrid();
+  renderPayBtns('expense');
+  // 初期税区分選択
+  document.querySelector('.tax-btn[data-tax="課対仕入10%"]').classList.add('sel');
+}
+
+function updateBanner() {
+  const b = document.getElementById('setupBar');
+  if (gasUrl) { b.className='setup-bar ok'; b.innerHTML='✅ Sheetsへの自動記録が有効です'; }
+}
+
+function switchType(type) {
+  currentType = type;
+  catVal = ''; payVal = ''; vendorVal = '';
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('sel'));
+  document.querySelectorAll('.vendor-btn').forEach(b => b.classList.remove('sel'));
+  document.getElementById('vendorInput').value = '';
+
+  const isExp = type === 'expense';
+  document.getElementById('toggleExp').className = 'type-btn exp' + (isExp ? ' active' : '');
+  document.getElementById('toggleRev').className = 'type-btn rev' + (!isExp ? ' active' : '');
+  document.getElementById('amountHero').className = 'amount-hero ' + (isExp ? 'eh' : 'rh');
+  document.getElementById('amountLabel').textContent = isExp ? 'EXPENSE / 支出' : 'REVENUE / 収入';
+  document.getElementById('catCard').style.display = isExp ? 'block' : 'none';
+  document.getElementById('payLabel').textContent = isExp ? '支払' : '入金';
+  renderPayBtns(type);
+  const memo = document.getElementById('memoInput');
+  memo.className = 'memo-input ' + (isExp ? 'ef' : 'rf');
+  const btn = document.getElementById('recordBtn');
+  btn.className = 'btn-record ' + (isExp ? 'eb' : 'rb');
+}
+
+function renderPayBtns(type) {
+  const pays = type === 'expense' ? EXP_PAYS : REV_PAYS;
+  const cls = type === 'expense' ? 'ep' : 'rp';
+  document.getElementById('payRow').innerHTML = pays.map(([icon, label]) =>
+    `<button class="pay-btn ${cls}" data-pay="${label}" onclick="selPay(this)">${icon} ${label}</button>`
+  ).join('');
+}
+
+function showView(n) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + n).classList.add('active');
+  document.getElementById('nav-' + n).classList.add('active');
+  if (n === 'history') renderHistory();
+}
+
+function selCat(el) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel'); catVal = el.dataset.cat;
+}
+function selPay(el) {
+  document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel'); payVal = el.dataset.pay;
+}
+function selVendor(el) {
+  document.querySelectorAll('.vendor-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  vendorVal = el.dataset.v;
+  document.getElementById('vendorInput').value = '';
+}
+function selTax(el) {
+  document.querySelectorAll('.tax-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel'); taxVal = el.dataset.tax;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('vendorInput').addEventListener('input', function() {
+    if (this.value) {
+      document.querySelectorAll('.vendor-btn').forEach(b => b.classList.remove('sel'));
+      vendorVal = '';
+    }
+  });
+});
+
+async function submitEntry() {
+  const date = document.getElementById('dateInput').value;
+  const amount = document.getElementById('amountInput').value;
+  const memo = document.getElementById('memoInput').value.trim();
+  const vendorInputVal = document.getElementById('vendorInput').value.trim();
+  const vendor = vendorVal || vendorInputVal || '';
+  const isExp = currentType === 'expense';
+
+  if (!date) return toast('発生日を入力してください', true);
+  if (!amount || Number(amount) <= 0) return toast('金額を入力してください', true);
+  if (isExp && !catVal) return toast('勘定科目を選択してください', true);
+
+  const kubun = isExp ? '支出' : '収入';
+  const category = isExp ? catVal : '';
+
+  const entry = {
+    id: Date.now(), date, amount: Number(amount), memo,
+    payment: payVal || '', month, type: currentType,
+    kubun, category, vendor, taxKubun: taxVal
+  };
+
+  const btn = document.getElementById('recordBtn');
+  btn.disabled = true; btn.textContent = '送信中...';
+
+  if (gasUrl) {
+    try {
+      await fetch(gasUrl, {
+        method: 'POST', mode: 'no-cors',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(entry)
+      });
+      toast('✓ Sheetsに記録しました！');
+    } catch { toast('通信エラー。ローカルに保存', true); }
+  } else {
+    toast('⚠ URL未設定。ローカルのみ保存', true);
+  }
+
+  entries.unshift(entry); save();
+  btn.disabled = false; btn.textContent = '📝 記録する';
+
+  document.getElementById('amountInput').value = '';
+  document.getElementById('memoInput').value = '';
+  document.getElementById('vendorInput').value = '';
+  document.querySelectorAll('.cat-btn,.pay-btn,.vendor-btn').forEach(b => b.classList.remove('sel'));
+  catVal = ''; payVal = ''; vendorVal = '';
+  // 税区分は10%をデフォルトに戻す
+  document.querySelectorAll('.tax-btn').forEach(b => b.classList.remove('sel'));
+  document.querySelector('.tax-btn[data-tax="課対仕入10%"]').classList.add('sel');
+  taxVal = '課対仕入10%';
+}
+
+function setFilter(mode) {
+  filterMode = mode;
+  document.getElementById('fAll').className = 'ftab' + (mode === 'all' ? ' fa' : '');
+  document.getElementById('fExp').className = 'ftab' + (mode === 'expense' ? ' fe' : '');
+  document.getElementById('fRev').className = 'ftab' + (mode === 'revenue' ? ' fr' : '');
+  renderHistory();
+}
+
+function renderHistory() {
+  const byMonth = entries.filter(e => e.month === month);
+  const expSum = byMonth.filter(e => e.type === 'expense').reduce((s,e) => s + e.amount, 0);
+  const revSum = byMonth.filter(e => e.type === 'revenue').reduce((s,e) => s + e.amount, 0);
+  document.getElementById('totalExp').textContent = '¥' + expSum.toLocaleString();
+  document.getElementById('totalRev').textContent = '¥' + revSum.toLocaleString();
+
+  const bycat = {};
+  byMonth.filter(e => e.type === 'expense' && e.category).forEach(e => {
+    bycat[e.category] = (bycat[e.category] || 0) + e.amount;
+  });
+  document.getElementById('breakdown').innerHTML = Object.entries(bycat).map(([k,v]) =>
+    `<span class="b-chip">${EMOJI[k]||''} ${k} ¥${v.toLocaleString()}</span>`).join('');
+
+  const filtered = byMonth.filter(e => filterMode === 'all' || e.type === filterMode);
+  const list = document.getElementById('historyList');
+  const empty = document.getElementById('emptyMsg');
+
+  if (!filtered.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+  empty.style.display = 'none';
+
+  list.innerHTML = filtered.map(e => {
+    const isExp = e.type === 'expense';
+    const icon = isExp ? (EMOJI[e.category] || '💰') : '📥';
+    const label = isExp ? e.category : '収入';
+    const sub2 = e.vendor ? `　${e.vendor}` : '';
+    return `
+    <div class="h-item">
+      <div class="h-dot ${isExp ? 'ed' : 'rd'}">${icon}</div>
+      <div class="h-body">
+        <div class="h-tag ${isExp ? 'et' : 'rt'}">${isExp ? '支出' : '収入'} · ${label}</div>
+        <div class="h-memo">${e.vendor || e.memo || '（詳細なし）'}</div>
+        <div class="h-sub">${e.date}　${e.payment||''}${e.memo ? '　'+e.memo : ''}</div>
+      </div>
+      <div class="h-right">
+        <div class="h-amt ${isExp ? 'ea' : 'ra'}">${isExp ? '' : '+'}¥${e.amount.toLocaleString()}</div>
+        <button class="h-del" onclick="delEntry(${e.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function delEntry(id) {
+  entries = entries.filter(e => e.id !== id); save(); renderHistory(); toast('削除しました');
+}
+
+function saveSettings() {
+  gasUrl = document.getElementById('gasUrlInput').value.trim();
+  save(); updateBanner(); toast('✓ 設定を保存しました');
+}
+
+function save() {
+  localStorage.setItem('keihi_v5', JSON.stringify({gasUrl, entries: entries.slice(0, 500)}));
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(GAS).then(() => toast('コードをコピーしました！'));
+}
+
+function buildMonthGrid() {
+  const year = new Date().getFullYear();
+  document.getElementById('mGrid').innerHTML =
+    Array.from({length: 12}, (_, i) => {
+      const v = `${year}.${String(i+1).padStart(2,'0')}`;
+      return `<button class="m-btn${v === month ? ' active' : ''}" onclick="setMonth('${v}')">${i+1}月</button>`;
+    }).join('');
+}
+
+function setMonth(m) {
+  month = m;
+  document.getElementById('monthChip').textContent = m;
+  document.querySelectorAll('.m-btn').forEach((b, i) =>
+    b.classList.toggle('active', `${new Date().getFullYear()}.${String(i+1).padStart(2,'0')}` === m));
+  closeMonth();
+}
+
+function openMonth() { document.getElementById('mOverlay').classList.add('open'); }
+function closeMonth() { document.getElementById('mOverlay').classList.remove('open'); }
+function maybeClose(e) { if (e.target === document.getElementById('mOverlay')) closeMonth(); }
+
+function toast(msg, err = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast' + (err ? ' err' : '') + ' show';
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+init();
+</script>
+</body>
+</html>
