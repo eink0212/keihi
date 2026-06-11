@@ -106,6 +106,14 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
 .vendor-btn[data-v="GoPay"]{border-left:3px solid #00BCD4;}
 .vendor-btn[data-v="エスライド"]{border-left:3px solid #E91E63;}
 .vendor-btn[data-v="個人タクシー"]{border-left:3px solid #FF9800;}
+
+/* サジェスト */
+.suggest-wrap{position:relative;}
+.suggest-list{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(68,88,112,0.15);z-index:100;max-height:200px;overflow-y:auto;margin-top:4px;}
+.suggest-item{padding:12px 14px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);}
+.suggest-item:last-child{border-bottom:none;}
+.suggest-item:active{background:var(--sl-light);}
+.suggest-highlight{color:var(--sl-deep);font-weight:800;}
 .vendor-other-row{display:flex;align-items:center;gap:8px;}
 .vendor-other-icon{font-size:15px;flex-shrink:0;}
 .vendor-input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:inherit;font-size:16px;font-weight:600;color:var(--text);background:var(--bg);outline:none;}
@@ -300,7 +308,10 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
       </div>
       <div class="vendor-other-row">
         <span class="vendor-other-icon">✏️</span>
-        <input class="vendor-input" id="vendorInput" type="text" placeholder="その他・直接入力">
+        <div class="suggest-wrap" style="flex:1;">
+          <input class="vendor-input" id="vendorInput" type="text" placeholder="その他・直接入力" autocomplete="off" oninput="onVendorInput(this)" onblur="hideSuggest()">
+          <div class="suggest-list" id="suggestList" style="display:none;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -506,6 +517,57 @@ function selPay(el) {
   document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('sel'));
   el.classList.add('sel'); payVal = el.dataset.pay;
 }
+
+// ── サジェスト ──
+function getVendorHistory() {
+  const s = JSON.parse(localStorage.getItem('keihi_v5') || '{}');
+  const entries = s.entries || [];
+  // 過去に使った取引先を重複なしで取得（新しい順）
+  const seen = new Set();
+  const result = [];
+  for (const e of entries) {
+    const v = (e.vendor || '').trim();
+    if (v && !seen.has(v)) {
+      seen.add(v);
+      result.push(v);
+    }
+  }
+  return result;
+}
+
+function onVendorInput(el) {
+  // プリセット選択を解除
+  document.querySelectorAll('.vendor-btn').forEach(b => b.classList.remove('sel'));
+  vendorVal = '';
+
+  const q = el.value.trim();
+  const list = document.getElementById('suggestList');
+  if (!q) { list.style.display = 'none'; return; }
+
+  const history = getVendorHistory();
+  const matched = history.filter(v => v.includes(q));
+  if (!matched.length) { list.style.display = 'none'; return; }
+
+  list.innerHTML = matched.map(v => {
+    const hi = v.replace(q, `<span class="suggest-highlight">${q}</span>`);
+    return `<div class="suggest-item" onmousedown="pickSuggest('${v.replace(/'/g, "\'")}')">${hi}</div>`;
+  }).join('');
+  list.style.display = 'block';
+}
+
+function pickSuggest(val) {
+  document.getElementById('vendorInput').value = val;
+  document.getElementById('suggestList').style.display = 'none';
+  vendorVal = '';
+}
+
+function hideSuggest() {
+  setTimeout(() => {
+    const list = document.getElementById('suggestList');
+    if (list) list.style.display = 'none';
+  }, 150);
+}
+
 function selVendor(el) {
   document.querySelectorAll('.vendor-btn').forEach(b => b.classList.remove('sel'));
   el.classList.add('sel');
