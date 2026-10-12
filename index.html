@@ -220,6 +220,17 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
 .m-btn{padding:16px 6px;text-align:center;font-size:16px;font-weight:700;border:2px solid var(--border);border-radius:10px;cursor:pointer;background:var(--bg);color:var(--text-mid);font-family:inherit;}
 .m-btn.active{border-color:#7A9BB0;background:#E0EDF5;color:#445870;}
 .m-btn:active{transform:scale(0.95);}
+.m-year{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:12px;}
+.m-year-lbl{font-size:18px;font-weight:800;color:var(--text);min-width:70px;text-align:center;}
+.m-year-btn{width:40px;height:40px;border:2px solid var(--border);border-radius:10px;background:var(--bg);font-family:inherit;font-size:18px;font-weight:800;color:var(--text-mid);cursor:pointer;}
+
+/* 未送信 */
+.unsent-bar{display:none;margin-bottom:12px;padding:12px 14px;background:#F5E8EC;border:1.5px solid #D0A8B4;border-radius:12px;font-size:14px;font-weight:700;color:#906878;align-items:center;justify-content:space-between;gap:8px;}
+.unsent-bar.show{display:flex;}
+.btn-resend{padding:8px 14px;background:#906878;color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;}
+.btn-resend:disabled{background:#C0C8D8;}
+.h-unsent{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;background:#F5E8EC;color:#906878;margin-left:6px;}
+.btn-sub{width:100%;padding:13px;margin-top:8px;background:#E0EDF5;color:#445870;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;}
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:12px 22px;border-radius:28px;font-size:13px;font-weight:700;opacity:0;transition:opacity 0.25s,transform 0.25s;z-index:300;white-space:nowrap;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -354,6 +365,10 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
     </div>
     <div class="breakdown" id="breakdown"></div>
   </div>
+  <div class="unsent-bar" id="unsentBar">
+    <span id="unsentMsg">未送信 0件</span>
+    <button class="btn-resend" id="resendBtn" onclick="resendUnsent()">再送する</button>
+  </div>
   <div class="filter-tabs">
     <button class="ftab fa" id="fAll" onclick="setFilter('all')">すべて</button>
     <button class="ftab" id="fExp" onclick="setFilter('expense')">📤 支出</button>
@@ -372,20 +387,15 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
     <div class="slbl">GAS Webhook URL</div>
     <input class="sinput" id="gasUrlInput" type="text" placeholder="https://script.google.com/macros/s/...">
     <div class="shint">スプレッドシートに設定したGASのデプロイURLを貼り付けてください</div>
+    <div class="slbl">合言葉（任意）</div>
+    <input class="sinput" id="gasKeyInput" type="password" placeholder="GAS側の API_KEY と同じ文字列" autocomplete="off">
+    <div class="shint">GASのスクリプトプロパティに API_KEY を設定した場合のみ入力してください</div>
     <button class="btn-save" onclick="saveSettings()">💾 保存する</button>
+    <button class="btn-sub" onclick="testConnection()">🔌 接続テスト</button>
   </div>
-  <div class="shl" style="margin-top:8px;">GAS セットアップ手順</div>
+  <div class="shl" style="margin-top:8px;">GAS について</div>
   <div class="scard">
-    <div class="steps">
-      <div class="step"><span class="step-n">1</span>スプレッドシートを開く</div>
-      <div class="step"><span class="step-n">2</span>「拡張機能」→「Apps Script」を開く</div>
-      <div class="step"><span class="step-n">3</span>下のコードを貼り付けて保存（Ctrl+S）</div>
-      <div class="step"><span class="step-n">4</span>「デプロイ」→「新しいデプロイ」を選ぶ</div>
-      <div class="step"><span class="step-n">5</span>種類：ウェブアプリ ／ アクセス：<strong>全員</strong></div>
-      <div class="step"><span class="step-n">6</span>発行されたURLをコピーして上の欄に貼り付け保存</div>
-    </div>
-    <div class="code-box"><code class="code-txt" id="codeBlock"></code></div>
-    <button class="btn-copy" onclick="copyCode()">📋 コードをコピー</button>
+    <div class="shint" style="margin-bottom:0;">GASコードはPC側（clasp）で管理しています。コードを変更したら新しいバージョンでデプロイしてください（URLは変わりません）。</div>
   </div>
 </div>
 
@@ -399,6 +409,11 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
   <div class="m-sheet">
     <div class="m-handle"></div>
     <div class="m-title">月を選択</div>
+    <div class="m-year">
+      <button class="m-year-btn" onclick="shiftYear(-1)">‹</button>
+      <div class="m-year-lbl" id="mYear"></div>
+      <button class="m-year-btn" onclick="shiftYear(1)">›</button>
+    </div>
     <div class="m-grid" id="mGrid"></div>
   </div>
 </div>
@@ -406,70 +421,54 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
 <div class="toast" id="toast"></div>
 
 <script>
-const SS_ID = '1bQkhW7SsSZvGSEjJMWrDnJpunPX7RzmUAkiwG854-fo';
-
-// スプシの列構成（スクショより）：
+// スプシの列構成：
 // A:区分  B:発生日  C:勘定科目  D:支払  E:取引先  F:税区分  G:金額  H:備考
-const GAS = `function doPost(e) {
-  try {
-    var d = JSON.parse(e.postData.contents);
-    var ss = SpreadsheetApp.openById('${SS_ID}');
-    var sh = ss.getSheetByName(d.month);
-    if (!sh) {
-      sh = ss.insertSheet(d.month);
-      sh.appendRow(['区分','発生日','勘定科目','支払','取引先','税区分','金額','備考']);
-    }
-    // A:区分, B:発生日, C:勘定科目, D:支払, E:取引先, F:税区分, G:金額, H:備考
-    sh.appendRow([
-      d.kubun,
-      d.date,
-      d.category,
-      d.payment,
-      d.vendor,
-      d.taxKubun,
-      Number(d.amount),
-      d.memo
-    ]);
-    return ContentService
-      .createTextOutput(JSON.stringify({status:'ok'}))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({status:'error',msg:err.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}`;
-
-document.getElementById('codeBlock').textContent = GAS;
+// GASコードは gas/コード.js（clasp管理）
 
 const EMOJI = {'旅費交通費':'🚃','交際費':'🥂','支払手数料':'💳','消耗品':'📦','会議費':'☕','新聞図書費':'📚'};
 const EXP_PAYS = [['💳','クレカ'],['💴','現金'],['🏪','四方'],['📦','その他']];
 const REV_PAYS = [['🏦','振込'],['💴','現金'],['💳','クレカ']];
+const DEFAULT_TAX = {expense:'課対仕入10%', revenue:'課税売上10%'};
 
 let currentType = 'expense';
-let catVal = '', payVal = '', vendorVal = '', taxVal = '課対仕入10%';
+let catVal = '', payVal = '', vendorVal = '', taxVal = DEFAULT_TAX.expense;
 let filterMode = 'all';
-let month = '', gasUrl = '', entries = [];
+let month = '', gasUrl = '', gasKey = '', entries = [];
+let gridYear = 0, sending = false;
+
+const pad = n => String(n).padStart(2,'0');
+// 端末のローカル日付（toISOString はUTCなので朝9時前に前日になる）
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const monthOf = date => date.slice(0,7).replace('-','.');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function init() {
   const now = new Date();
-  month = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}`;
+  month = monthOf(ymd(now));
   document.getElementById('monthChip').textContent = month;
-  document.getElementById('dateInput').value = now.toISOString().split('T')[0];
+  document.getElementById('dateInput').value = ymd(now);
   const s = JSON.parse(localStorage.getItem('keihi_v5') || '{}');
   gasUrl = s.gasUrl || '';
+  gasKey = s.gasKey || '';
   entries = s.entries || [];
   document.getElementById('gasUrlInput').value = gasUrl;
+  document.getElementById('gasKeyInput').value = gasKey;
   updateBanner();
-  buildMonthGrid();
   renderPayBtns('expense');
-  // 初期税区分選択
-  document.querySelector('.tax-btn[data-tax="課対仕入10%"]').classList.add('sel');
+  setTax(DEFAULT_TAX.expense);
+  updateUnsent();
+  // 電波が戻ったら・起動時に未送信分を自動で再送
+  window.addEventListener('online', () => resendUnsent(true));
+  resendUnsent(true);
 }
 
 function updateBanner() {
   const b = document.getElementById('setupBar');
   if (gasUrl) { b.className='setup-bar ok'; b.innerHTML='✅ Sheetsへの自動記録が有効です'; }
+  else {
+    b.className='setup-bar';
+    b.innerHTML='⚠️ Webhook URLを設定するとスプシに自動記録されます &nbsp;<button class="setup-link" onclick="showView(\'settings\')">設定する →</button>';
+  }
 }
 
 function switchType(type) {
@@ -487,6 +486,7 @@ function switchType(type) {
   document.getElementById('catCard').style.display = isExp ? 'block' : 'none';
   document.getElementById('payLabel').textContent = isExp ? '支払' : '入金';
   renderPayBtns(type);
+  setTax(DEFAULT_TAX[type]);
   const memo = document.getElementById('memoInput');
   memo.className = 'memo-input ' + (isExp ? 'ef' : 'rf');
   const btn = document.getElementById('recordBtn');
@@ -520,8 +520,6 @@ function selPay(el) {
 
 // ── サジェスト ──
 function getVendorHistory() {
-  const s = JSON.parse(localStorage.getItem('keihi_v5') || '{}');
-  const entries = s.entries || [];
   // 過去に使った取引先を重複なしで取得（新しい順）
   const seen = new Set();
   const result = [];
@@ -544,13 +542,12 @@ function onVendorInput(el) {
   const list = document.getElementById('suggestList');
   if (!q) { list.style.display = 'none'; return; }
 
-  const history = getVendorHistory();
-  const matched = history.filter(v => v.includes(q));
+  const matched = getVendorHistory().filter(v => v.includes(q));
   if (!matched.length) { list.style.display = 'none'; return; }
 
   list.innerHTML = matched.map(v => {
-    const hi = v.replace(q, `<span class="suggest-highlight">${q}</span>`);
-    return `<div class="suggest-item" onmousedown="pickSuggest('${v.replace(/'/g, "\'")}')">${hi}</div>`;
+    const hi = v.split(q).map(esc).join(`<span class="suggest-highlight">${esc(q)}</span>`);
+    return `<div class="suggest-item" data-v="${esc(v)}" onmousedown="pickSuggest(this.dataset.v)">${hi}</div>`;
   }).join('');
   list.style.display = 'block';
 }
@@ -574,19 +571,24 @@ function selVendor(el) {
   vendorVal = el.dataset.v;
   document.getElementById('vendorInput').value = '';
 }
-function selTax(el) {
-  document.querySelectorAll('.tax-btn').forEach(b => b.classList.remove('sel'));
-  el.classList.add('sel'); taxVal = el.dataset.tax;
+function selTax(el) { setTax(el.dataset.tax); }
+function setTax(val) {
+  document.querySelectorAll('.tax-btn').forEach(b => b.classList.toggle('sel', b.dataset.tax === val));
+  taxVal = val;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('vendorInput').addEventListener('input', function() {
-    if (this.value) {
-      document.querySelectorAll('.vendor-btn').forEach(b => b.classList.remove('sel'));
-      vendorVal = '';
-    }
+// ── 送信 ──
+// text/plain で送るとCORSの事前確認が不要になり、GASの応答を読める
+async function postEntry(entry) {
+  const res = await fetch(gasUrl, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify({...entry, key: gasKey})
   });
-});
+  const j = await res.json();
+  if (j.status !== 'ok') throw new Error(j.msg || 'GASエラー');
+  return j;
+}
 
 async function submitEntry() {
   const date = document.getElementById('dateInput').value;
@@ -600,32 +602,33 @@ async function submitEntry() {
   if (!amount || Number(amount) <= 0) return toast('金額を入力してください', true);
   if (isExp && !catVal) return toast('勘定科目を選択してください', true);
 
-  const kubun = isExp ? '支出' : '収入';
-  const category = isExp ? catVal : '';
-
   const entry = {
     id: Date.now(), date, amount: Number(amount), memo,
-    payment: payVal || '', month, type: currentType,
-    kubun, category, vendor, taxKubun: taxVal
+    payment: payVal || '', month: monthOf(date), type: currentType,
+    kubun: isExp ? '支出' : '収入', category: isExp ? catVal : '',
+    vendor, taxKubun: taxVal, synced: false
   };
+
+  // 送信前にローカル保存（送信中にアプリを閉じても消えないように）
+  entries.unshift(entry); save();
 
   const btn = document.getElementById('recordBtn');
   btn.disabled = true; btn.textContent = '送信中...';
 
   if (gasUrl) {
     try {
-      await fetch(gasUrl, {
-        method: 'POST', mode: 'no-cors',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(entry)
-      });
-      toast('✓ Sheetsに記録しました！');
-    } catch { toast('通信エラー。ローカルに保存', true); }
+      const j = await postEntry(entry);
+      entry.synced = true; save();
+      toast(`✓ ${j.sheet || entry.month} に記録しました`);
+    } catch (err) {
+      console.error(err);
+      toast('送信失敗。未送信として保存しました', true);
+    }
   } else {
     toast('⚠ URL未設定。ローカルのみ保存', true);
   }
+  updateUnsent();
 
-  entries.unshift(entry); save();
   btn.disabled = false; btn.textContent = '📝 記録する';
 
   document.getElementById('amountInput').value = '';
@@ -633,12 +636,38 @@ async function submitEntry() {
   document.getElementById('vendorInput').value = '';
   document.querySelectorAll('.cat-btn,.pay-btn,.vendor-btn').forEach(b => b.classList.remove('sel'));
   catVal = ''; payVal = ''; vendorVal = '';
-  // 税区分は10%をデフォルトに戻す
-  document.querySelectorAll('.tax-btn').forEach(b => b.classList.remove('sel'));
-  document.querySelector('.tax-btn[data-tax="課対仕入10%"]').classList.add('sel');
-  taxVal = '課対仕入10%';
+  setTax(DEFAULT_TAX[currentType]);
 }
 
+function updateUnsent() {
+  const n = entries.filter(e => e.synced === false).length;
+  document.getElementById('unsentBar').classList.toggle('show', n > 0);
+  document.getElementById('unsentMsg').textContent = `⚠ スプシ未送信 ${n}件`;
+}
+
+async function resendUnsent(silent = false) {
+  if (sending || !gasUrl) {
+    if (!silent && !gasUrl) toast('Webhook URLが未設定です', true);
+    return;
+  }
+  const list = entries.filter(e => e.synced === false).reverse(); // 古い順に送る
+  if (!list.length) return;
+  sending = true;
+  const btn = document.getElementById('resendBtn');
+  btn.disabled = true; btn.textContent = '送信中...';
+  let ok = 0, ng = 0;
+  for (const e of list) {
+    try { await postEntry(e); e.synced = true; ok++; save(); }
+    catch (err) { console.error(err); ng++; }
+  }
+  sending = false;
+  btn.disabled = false; btn.textContent = '再送する';
+  updateUnsent();
+  if (document.getElementById('view-history').classList.contains('active')) renderHistory();
+  if (!silent || ok) toast(ng ? `再送 ${ok}件成功／${ng}件失敗` : `✓ ${ok}件を再送しました`, ng > 0);
+}
+
+// ── 履歴 ──
 function setFilter(mode) {
   filterMode = mode;
   document.getElementById('fAll').className = 'ftab' + (mode === 'all' ? ' fa' : '');
@@ -648,6 +677,7 @@ function setFilter(mode) {
 }
 
 function renderHistory() {
+  updateUnsent();
   const byMonth = entries.filter(e => e.month === month);
   const expSum = byMonth.filter(e => e.type === 'expense').reduce((s,e) => s + e.amount, 0);
   const revSum = byMonth.filter(e => e.type === 'revenue').reduce((s,e) => s + e.amount, 0);
@@ -659,7 +689,7 @@ function renderHistory() {
     bycat[e.category] = (bycat[e.category] || 0) + e.amount;
   });
   document.getElementById('breakdown').innerHTML = Object.entries(bycat).map(([k,v]) =>
-    `<span class="b-chip">${EMOJI[k]||''} ${k} ¥${v.toLocaleString()}</span>`).join('');
+    `<span class="b-chip">${EMOJI[k]||''} ${esc(k)} ¥${v.toLocaleString()}</span>`).join('');
 
   const filtered = byMonth.filter(e => filterMode === 'all' || e.type === filterMode);
   const list = document.getElementById('historyList');
@@ -672,14 +702,14 @@ function renderHistory() {
     const isExp = e.type === 'expense';
     const icon = isExp ? (EMOJI[e.category] || '💰') : '📥';
     const label = isExp ? e.category : '収入';
-    const sub2 = e.vendor ? `　${e.vendor}` : '';
+    const unsent = e.synced === false ? '<span class="h-unsent">未送信</span>' : '';
     return `
     <div class="h-item">
       <div class="h-dot ${isExp ? 'ed' : 'rd'}">${icon}</div>
       <div class="h-body">
-        <div class="h-tag ${isExp ? 'et' : 'rt'}">${isExp ? '支出' : '収入'} · ${label}</div>
-        <div class="h-memo">${e.vendor || e.memo || '（詳細なし）'}</div>
-        <div class="h-sub">${e.date}　${e.payment||''}${e.memo ? '　'+e.memo : ''}</div>
+        <div class="h-tag ${isExp ? 'et' : 'rt'}">${isExp ? '支出' : '収入'} · ${esc(label)}${unsent}</div>
+        <div class="h-memo">${esc(e.vendor || e.memo || '（詳細なし）')}</div>
+        <div class="h-sub">${esc(e.date)}　${esc(e.payment)}${e.memo ? '　'+esc(e.memo) : ''}</div>
       </div>
       <div class="h-right">
         <div class="h-amt ${isExp ? 'ea' : 'ra'}">${isExp ? '' : '+'}¥${e.amount.toLocaleString()}</div>
@@ -690,40 +720,65 @@ function renderHistory() {
 }
 
 function delEntry(id) {
-  entries = entries.filter(e => e.id !== id); save(); renderHistory(); toast('削除しました');
+  const e = entries.find(x => x.id === id);
+  const note = e && e.synced !== false ? '\n※スマホ内の記録のみ削除されます。スプシ側は手動で削除してください。' : '';
+  if (!confirm('この記録を削除しますか？' + note)) return;
+  entries = entries.filter(x => x.id !== id); save(); renderHistory(); toast('削除しました');
 }
 
+// ── 設定 ──
 function saveSettings() {
   gasUrl = document.getElementById('gasUrlInput').value.trim();
+  gasKey = document.getElementById('gasKeyInput').value.trim();
   save(); updateBanner(); toast('✓ 設定を保存しました');
+  resendUnsent(true);
+}
+
+async function testConnection() {
+  const url = document.getElementById('gasUrlInput').value.trim();
+  const key = document.getElementById('gasKeyInput').value.trim();
+  if (!url) return toast('URLを入力してください', true);
+  try {
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key));
+    const j = await res.json();
+    if (j.status === 'ok') toast(`✓ 接続OK（GAS ${j.version || ''}）`);
+    else toast('✕ ' + (j.msg || '接続エラー'), true);
+  } catch (err) {
+    console.error(err);
+    toast('✕ 接続できません（URLかGASの版を確認）', true);
+  }
 }
 
 function save() {
-  localStorage.setItem('keihi_v5', JSON.stringify({gasUrl, entries: entries.slice(0, 500)}));
+  // 未送信の記録は500件を超えても残す
+  const kept = entries.slice(0, 500).concat(entries.slice(500).filter(e => e.synced === false));
+  localStorage.setItem('keihi_v5', JSON.stringify({gasUrl, gasKey, entries: kept}));
 }
 
-function copyCode() {
-  navigator.clipboard.writeText(GAS).then(() => toast('コードをコピーしました！'));
-}
-
+// ── 月選択 ──
 function buildMonthGrid() {
-  const year = new Date().getFullYear();
+  document.getElementById('mYear').textContent = `${gridYear}年`;
   document.getElementById('mGrid').innerHTML =
     Array.from({length: 12}, (_, i) => {
-      const v = `${year}.${String(i+1).padStart(2,'0')}`;
+      const v = `${gridYear}.${pad(i+1)}`;
       return `<button class="m-btn${v === month ? ' active' : ''}" onclick="setMonth('${v}')">${i+1}月</button>`;
     }).join('');
 }
 
+function shiftYear(d) { gridYear += d; buildMonthGrid(); }
+
 function setMonth(m) {
   month = m;
   document.getElementById('monthChip').textContent = m;
-  document.querySelectorAll('.m-btn').forEach((b, i) =>
-    b.classList.toggle('active', `${new Date().getFullYear()}.${String(i+1).padStart(2,'0')}` === m));
   closeMonth();
+  if (document.getElementById('view-history').classList.contains('active')) renderHistory();
 }
 
-function openMonth() { document.getElementById('mOverlay').classList.add('open'); }
+function openMonth() {
+  gridYear = Number(month.slice(0,4));
+  buildMonthGrid();
+  document.getElementById('mOverlay').classList.add('open');
+}
 function closeMonth() { document.getElementById('mOverlay').classList.remove('open'); }
 function maybeClose(e) { if (e.target === document.getElementById('mOverlay')) closeMonth(); }
 
