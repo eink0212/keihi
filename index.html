@@ -92,7 +92,7 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
 .vendor-btn[data-v="ファミリーマート"].sel{border-color:#2196F3;background:#E3F2FD;color:#0D47A1;}
 .vendor-btn[data-v="Amazon"].sel{border-color:#FF9800;background:#FFF3E0;color:#E65100;}
 .vendor-btn[data-v="GoPay"].sel{border-color:#00BCD4;background:#E0F7FA;color:#006064;}
-.vendor-btn[data-v="エスライド"].sel{border-color:#E91E63;background:#FCE4EC;color:#880E4F;}
+.vendor-btn[data-v="S.RIDE"].sel{border-color:#E91E63;background:#FCE4EC;color:#880E4F;}
 .vendor-btn[data-v="個人タクシー"].sel{border-color:#FF9800;background:#FFF3E0;color:#E65100;}
 /* 未選択でも色ヒント */
 .vendor-btn[data-v="四方"]{border-left:3px solid #4CAF50;}
@@ -104,7 +104,7 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
 .vendor-btn[data-v="ファミリーマート"]{border-left:3px solid #2196F3;}
 .vendor-btn[data-v="Amazon"]{border-left:3px solid #FF9800;}
 .vendor-btn[data-v="GoPay"]{border-left:3px solid #00BCD4;}
-.vendor-btn[data-v="エスライド"]{border-left:3px solid #E91E63;}
+.vendor-btn[data-v="S.RIDE"]{border-left:3px solid #E91E63;}
 .vendor-btn[data-v="個人タクシー"]{border-left:3px solid #FF9800;}
 
 /* サジェスト */
@@ -230,6 +230,15 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
 .btn-resend{padding:8px 14px;background:#906878;color:white;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;}
 .btn-resend:disabled{background:#C0C8D8;}
 .h-unsent{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;background:#F5E8EC;color:#906878;margin-left:6px;}
+.ve-add{display:flex;gap:8px;align-items:flex-start;}
+.ve-add .sinput{flex:1;}
+.ve-add .btn-copy{padding:13px 14px;white-space:nowrap;}
+.ve-row{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border);}
+.ve-row:last-child{border-bottom:none;}
+.ve-name{flex:1;font-size:15px;font-weight:700;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ve-btn{width:36px;height:34px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit;font-size:14px;font-weight:800;color:var(--text-mid);cursor:pointer;}
+.ve-btn:disabled{opacity:.3;}
+.ve-btn.del{color:var(--red);}
 .btn-sub{width:100%;padding:13px;margin-top:8px;background:#E0EDF5;color:#445870;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;}
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:12px 22px;border-radius:28px;font-size:13px;font-weight:700;opacity:0;transition:opacity 0.25s,transform 0.25s;z-index:300;white-space:nowrap;pointer-events:none;}
@@ -299,28 +308,11 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
   <div class="card">
     <div class="card-label">取引先</div>
     <div class="vendor-wrap">
-      <div class="vendor-grid" id="vendorGrid">
-        <button class="vendor-btn" data-v="四方" onclick="selVendor(this)">四方</button>
-        <button class="vendor-btn" data-v="Amazon" onclick="selVendor(this)">Amazon</button>
-        <button class="vendor-btn" data-v="ルカヴォ" onclick="selVendor(this)">ルカヴォ</button>
-        <button class="vendor-btn" data-v="築地" onclick="selVendor(this)">築地</button>
-        <button class="vendor-btn" data-v="GoPay" onclick="selVendor(this)">GoPay</button>
-        <button class="vendor-btn" data-v="ビックカメラ" onclick="selVendor(this)">ビックカメラ</button>
-        <button class="vendor-btn" data-v="個人タクシー" onclick="selVendor(this)">個人タクシー</button>
-        <button class="vendor-btn" data-v="マルエツ" onclick="selVendor(this)">マルエツ</button>
-        <button class="vendor-btn" data-v="その他" onclick="selVendor(this)">その他</button>
-        <button class="vendor-btn" data-v="S.RIDE" onclick="selVendor(this)">S.RIDE</button>
-        <button class="vendor-btn" data-v="一般個人" onclick="selVendor(this)">一般個人</button>
-        <button class="vendor-btn" data-v="3rdCREATION" onclick="selVendor(this)">3rdCREATION</button>
-        <button class="vendor-btn" data-v="浜田青果" onclick="selVendor(this)">浜田青果</button>
-        <button class="vendor-btn" data-v="スギ薬局" onclick="selVendor(this)">スギ薬局</button>
-        <button class="vendor-btn" data-v="セブンイレブン" onclick="selVendor(this)">セブンイレブン</button>
-        <button class="vendor-btn" data-v="エスライド" onclick="selVendor(this)">エスライド</button>
-      </div>
+      <div class="vendor-grid" id="vendorGrid"></div>
       <div class="vendor-other-row">
         <span class="vendor-other-icon">✏️</span>
         <div class="suggest-wrap" style="flex:1;">
-          <input class="vendor-input" id="vendorInput" type="text" placeholder="その他・直接入力" autocomplete="off" oninput="onVendorInput(this)" onblur="hideSuggest()">
+          <input class="vendor-input" id="vendorInput" type="text" placeholder="その他・直接入力" autocomplete="off" oninput="onVendorInput(this)" onfocus="onVendorInput(this)" onblur="hideSuggest()">
           <div class="suggest-list" id="suggestList" style="display:none;"></div>
         </div>
       </div>
@@ -393,6 +385,16 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
     <button class="btn-save" onclick="saveSettings()">💾 保存する</button>
     <button class="btn-sub" onclick="testConnection()">🔌 接続テスト</button>
   </div>
+  <div class="shl" style="margin-top:8px;">取引先ボタン</div>
+  <div class="scard">
+    <div class="ve-add">
+      <input class="sinput" id="vendorAddInput" type="text" placeholder="追加する取引先名" list="vendorCands" autocomplete="off">
+      <button class="btn-copy" onclick="addVendor()">＋ 追加</button>
+    </div>
+    <datalist id="vendorCands"></datalist>
+    <div class="shint">↑↓で並べ替え、✕で削除。入力画面のボタンの並びに反映されます。</div>
+    <div id="vendorEditor"></div>
+  </div>
   <div class="shl" style="margin-top:8px;">GAS について</div>
   <div class="scard">
     <div class="shint" style="margin-bottom:0;">GASコードはPC側（clasp）で管理しています。コードを変更したら新しいバージョンでデプロイしてください（URLは変わりません）。</div>
@@ -429,17 +431,25 @@ const EMOJI = {'旅費交通費':'🚃','交際費':'🥂','支払手数料':'�
 const EXP_PAYS = [['💳','クレカ'],['💴','現金'],['🏪','四方'],['📦','その他']];
 const REV_PAYS = [['🏦','振込'],['💴','現金'],['💳','クレカ']];
 const DEFAULT_TAX = {expense:'課対仕入10%', revenue:'課税売上10%'};
+const DEFAULT_VENDORS = ['四方','Amazon','ルカヴォ','築地','GoPay','ビックカメラ','個人タクシー','マルエツ','その他',
+  'S.RIDE','一般個人','3rdCREATION','浜田青果','スギ薬局','セブンイレブン'];
+// 表記ゆれの統一（左を右に読み替えて候補に出す）
+const VENDOR_ALIAS = {'エスライド':'S.RIDE'};
 
 let currentType = 'expense';
 let catVal = '', payVal = '', vendorVal = '', taxVal = DEFAULT_TAX.expense;
 let filterMode = 'all';
 let month = '', gasUrl = '', gasKey = '', entries = [];
 let gridYear = 0, sending = false;
+let vendors = [], remoteVendors = [];
 
 const pad = n => String(n).padStart(2,'0');
 // 端末のローカル日付（toISOString はUTCなので朝9時前に前日になる）
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const monthOf = date => date.slice(0,7).replace('-','.');
+// 検索用の正規化：全角半角・大文字小文字・カタカナ/ひらがなの違いを無視
+const norm = s => String(s).normalize('NFKC').toLowerCase()
+  .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function init() {
@@ -451,12 +461,17 @@ function init() {
   gasUrl = s.gasUrl || '';
   gasKey = s.gasKey || '';
   entries = s.entries || [];
+  vendors = s.vendors || DEFAULT_VENDORS.slice();
+  remoteVendors = s.remoteVendors || [];
   document.getElementById('gasUrlInput').value = gasUrl;
   document.getElementById('gasKeyInput').value = gasKey;
   updateBanner();
   renderPayBtns('expense');
+  renderVendorGrid();
+  renderVendorEditor();
   setTax(DEFAULT_TAX.expense);
   updateUnsent();
+  fetchVendors();
   // 電波が戻ったら・起動時に未送信分を自動で再送
   window.addEventListener('online', () => resendUnsent(true));
   resendUnsent(true);
@@ -518,18 +533,33 @@ function selPay(el) {
   el.classList.add('sel'); payVal = el.dataset.pay;
 }
 
-// ── サジェスト ──
-function getVendorHistory() {
-  // 過去に使った取引先を重複なしで取得（新しい順）
+// ── 取引先 ──
+function renderVendorGrid() {
+  document.getElementById('vendorGrid').innerHTML = vendors.map(v =>
+    `<button class="vendor-btn${v === vendorVal ? ' sel' : ''}" data-v="${esc(v)}" onclick="selVendor(this)">${esc(v)}</button>`
+  ).join('');
+}
+
+// スプシ全月の取引先（使用回数順）を取得してローカルに保持
+async function fetchVendors() {
+  if (!gasUrl) return;
+  try {
+    const res = await fetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=vendors&key=' + encodeURIComponent(gasKey));
+    const j = await res.json();
+    if (j.status === 'ok' && Array.isArray(j.vendors)) { remoteVendors = j.vendors; save(); renderVendorEditor(); }
+  } catch (err) { console.error(err); }
+}
+
+// 候補：このスマホの履歴（新しい順）→ スプシ全体（よく使う順）。重複・表記ゆれを除く
+function getVendorCandidates() {
   const seen = new Set();
   const result = [];
-  for (const e of entries) {
-    const v = (e.vendor || '').trim();
-    if (v && !seen.has(v)) {
-      seen.add(v);
-      result.push(v);
-    }
-  }
+  const add = raw => {
+    const v = VENDOR_ALIAS[(raw || '').trim()] || (raw || '').trim();
+    if (v && !seen.has(v)) { seen.add(v); result.push(v); }
+  };
+  entries.forEach(e => add(e.vendor));
+  remoteVendors.forEach(add);
   return result;
 }
 
@@ -540,13 +570,17 @@ function onVendorInput(el) {
 
   const q = el.value.trim();
   const list = document.getElementById('suggestList');
-  if (!q) { list.style.display = 'none'; return; }
-
-  const matched = getVendorHistory().filter(v => v.includes(q));
+  const cands = getVendorCandidates();
+  // 未入力時はボタンにない取引先を最大10件、入力時は部分一致を最大20件
+  const matched = q
+    ? cands.filter(v => norm(v).includes(norm(q))).slice(0, 20)
+    : cands.filter(v => !vendors.includes(v)).slice(0, 10);
   if (!matched.length) { list.style.display = 'none'; return; }
 
   list.innerHTML = matched.map(v => {
-    const hi = v.split(q).map(esc).join(`<span class="suggest-highlight">${esc(q)}</span>`);
+    const hi = q && v.includes(q)
+      ? v.split(q).map(esc).join(`<span class="suggest-highlight">${esc(q)}</span>`)
+      : esc(v);
     return `<div class="suggest-item" data-v="${esc(v)}" onmousedown="pickSuggest(this.dataset.v)">${hi}</div>`;
   }).join('');
   list.style.display = 'block';
@@ -732,6 +766,42 @@ function saveSettings() {
   gasKey = document.getElementById('gasKeyInput').value.trim();
   save(); updateBanner(); toast('✓ 設定を保存しました');
   resendUnsent(true);
+  fetchVendors();
+}
+
+function renderVendorEditor() {
+  document.getElementById('vendorEditor').innerHTML = vendors.map((v, i) => `
+    <div class="ve-row">
+      <div class="ve-name">${esc(v)}</div>
+      <button class="ve-btn" onclick="moveVendor(${i},-1)"${i === 0 ? ' disabled' : ''}>↑</button>
+      <button class="ve-btn" onclick="moveVendor(${i},1)"${i === vendors.length-1 ? ' disabled' : ''}>↓</button>
+      <button class="ve-btn del" onclick="removeVendor(${i})">✕</button>
+    </div>`).join('');
+  document.getElementById('vendorCands').innerHTML = getVendorCandidates()
+    .filter(v => !vendors.includes(v)).map(v => `<option value="${esc(v)}">`).join('');
+}
+
+function updateVendors() { save(); renderVendorGrid(); renderVendorEditor(); }
+
+function addVendor() {
+  const el = document.getElementById('vendorAddInput');
+  const v = el.value.trim();
+  if (!v) return toast('取引先名を入力してください', true);
+  if (vendors.includes(v)) return toast('すでにあります', true);
+  vendors.push(v); el.value = ''; updateVendors(); toast(`✓ 「${v}」を追加しました`);
+}
+
+function moveVendor(i, d) {
+  const j = i + d;
+  if (j < 0 || j >= vendors.length) return;
+  [vendors[i], vendors[j]] = [vendors[j], vendors[i]];
+  updateVendors();
+}
+
+function removeVendor(i) {
+  if (!confirm(`「${vendors[i]}」をボタンから外しますか？
+（過去の記録はそのまま残ります）`)) return;
+  vendors.splice(i, 1); updateVendors();
 }
 
 async function testConnection() {
@@ -752,7 +822,7 @@ async function testConnection() {
 function save() {
   // 未送信の記録は500件を超えても残す
   const kept = entries.slice(0, 500).concat(entries.slice(500).filter(e => e.synced === false));
-  localStorage.setItem('keihi_v5', JSON.stringify({gasUrl, gasKey, entries: kept}));
+  localStorage.setItem('keihi_v5', JSON.stringify({gasUrl, gasKey, entries: kept, vendors, remoteVendors}));
 }
 
 // ── 月選択 ──
