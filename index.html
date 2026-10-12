@@ -107,7 +107,8 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
 .vendor-btn[data-v="S.RIDE"]{border-left:3px solid #E91E63;}
 .vendor-btn[data-v="個人タクシー"]{border-left:3px solid #FF9800;}
 
-/* サジェスト */
+/* サジェスト（カード外へはみ出して表示するため overflow を解除） */
+.card.vendor-card{overflow:visible;}
 .suggest-wrap{position:relative;}
 .suggest-list{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(68,88,112,0.15);z-index:100;max-height:200px;overflow-y:auto;margin-top:4px;}
 .suggest-item{padding:12px 14px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);}
@@ -305,7 +306,7 @@ body{font-family:'Nunito','Hiragino Sans','Yu Gothic UI',sans-serif;background:v
   </div>
 
   <!-- 取引先 -->
-  <div class="card">
+  <div class="card vendor-card">
     <div class="card-label">取引先</div>
     <div class="vendor-wrap">
       <div class="vendor-grid" id="vendorGrid"></div>
